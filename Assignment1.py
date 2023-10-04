@@ -1,5 +1,6 @@
 import socket
 import json
+from urllib.parse import urlparse
 
 serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 serverSocket.bind(('localhost', 8090))
@@ -38,6 +39,7 @@ def handle_request(client_ock):
                            f'\n\n{response_body}'
 
         # POST Methods for '/hello' '/hello/' '/test'
+        # POST Methods all work on Oct 4 9:05am
         elif request_method == 'POST':
 
             if path == '/hello':
@@ -52,18 +54,17 @@ def handle_request(client_ock):
                            f'\n\n{response_body}'
 
             elif path == '/test':
-                name = [path.split()]
-                print(name[-1])
+                response_body = 'Bad Request'
+                response = f'HTTP/1.1 400 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
+                           f'\n\n{response_body}'
 
-                if name[-1] == 'test':
-                    response_body = json.dumps('Bad request')
-                    response = f'HTTP/1.1 400 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
-                               f'\n\n{response_body}'
-                # else:
-                #     print(name)
-                #     response_body = json.dumps({"message": f"Hi, {name}."})
-                #     response = f'HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
-                #                f'\n\n{response_body}'
+            elif path.startswith('/test?'):
+                msg = urlparse(path)
+                message = msg.query.partition('=')[2]
+
+                response_body = json.dumps({"message": f"{message}"})
+                response = f'HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
+                           f'\n\n{response_body}'
 
             # Server Catch for potential errors that aren't predefined
             else:
@@ -80,5 +81,6 @@ def handle_request(client_ock):
 
 
 while True:
+    # Both GET and POST now fully work - moving onto testing the script and Dockerfile
     client_socket, addr = serverSocket.accept()
     handle_request(client_socket)
