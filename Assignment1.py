@@ -47,12 +47,23 @@ def handle_request(client_ock):
 
             elif path.startswith('/hello/'):
                 name = path.split('/')[-1]
-                response_body = '{"message":"Hi, {}"'.format(name)
+                response_body = json.dumps({"message": f"Hi, {name}."})
                 response = f'HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
                            f'\n\n{response_body}'
 
             elif path == '/test':
-                pass
+                name = [path.split()]
+                print(name[-1])
+
+                if name[-1] == 'test':
+                    response_body = json.dumps('Bad request')
+                    response = f'HTTP/1.1 400 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
+                               f'\n\n{response_body}'
+                # else:
+                #     print(name)
+                #     response_body = json.dumps({"message": f"Hi, {name}."})
+                #     response = f'HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
+                #                f'\n\n{response_body}'
 
             # Server Catch for potential errors that aren't predefined
             else:
