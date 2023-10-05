@@ -1,6 +1,6 @@
 import socket
 import json
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 serverSocket.bind(('localhost', 8090))
@@ -59,12 +59,19 @@ def handle_request(client_ock):
                            f'\n\n{response_body}'
 
             elif path.startswith('/test?'):
-                msg = urlparse(path)
-                message = msg.query.partition('=')[2]
+                parsed_url = urlparse(path)
+                query_parameters = parse_qs(parsed_url.query)
 
-                response_body = json.dumps({"message": f"{message}"})
-                response = f'HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
-                           f'\n\n{response_body}'
+                if 'msg' in query_parameters:
+                    message = query_parameters['msg'][0]
+
+                    response_body = json.dumps({"message": f"{message}"})
+                    response = f'HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: ' \
+                               f'{len(response_body)}\n\n{response_body}'
+                else:
+                    response_body = json.dumps({"error": "Unsupported parameter"})
+                    response = f'HTTP/1.1 400 Bad Request\nContent-Type: application/json\nContent-Length: ' \
+                               f'{len(response_body)}\n\n{response_body} '
 
             # Server Catch for potential errors that aren't predefined
             else:
