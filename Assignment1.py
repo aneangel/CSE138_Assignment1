@@ -59,6 +59,12 @@ def handle_request(client_ock):
                            f'\n\n{response_body}'
 
             elif path.startswith('/test?'):
+                # I used stackoverflow for inspiration on this portion to help understand how I could separate and
+                # differentiate between msg params and unwanted params found here:
+                # https://stackoverflow.com/questions/12572362/how-to-get-a-string-after-a-specific-substring as well
+                # as docs.python for additional information on how to use urlparse found here:
+                # https://docs.python.org/3/library/urllib.parse.html
+
                 parsed_url = urlparse(path)
                 query_parameters = parse_qs(parsed_url.query)
 
