@@ -1,99 +1,42 @@
-import socket
-import json
-from urllib.parse import urlparse, parse_qs
+from flask import Flask, jsonify, request
 
-serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-serverSocket.bind(('localhost', 8090))
-serverSocket.listen(5)
+app = Flask(__name__)
 
 
-def handle_request(client_ock):
-    request_data = client_ock.recv(1024).decode()
-    if request_data:
-        request_lines = request_data.split('\n')
-        request_method, path, _ = request_lines[0].split()
-
-        # GET Methods for '/hello' '/hello/' '/test'
-        # Currently only GET methods work Oct 3, 2023: 12:31pm
-        if request_method == 'GET':
-
-            if path == '/hello':
-                response_body = json.dumps({"message": "world"})
-                response = f'HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
-                           f'\n\n{response_body}'
-
-            elif path.startswith('/hello/'):
-                response_body = 'Method Not Allowed'
-                response = f'HTTP/1.1 405 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
-                           f'\n\n{response_body}'
-
-            elif path == '/test':
-                response_body = json.dumps({"message": "test is successful"})
-                response = f'HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
-                           f'\n\n{response_body}'
-
-            # Server Catch for potential errors that aren't predefined
-            else:
-                response_body = 'Server Error: Method Not Supported'
-                response = f'HTTP/1.1 400 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
-                           f'\n\n{response_body}'
-
-        # POST Methods for '/hello' '/hello/' '/test'
-        # POST Methods all work on Oct 4 9:05am
-        elif request_method == 'POST':
-
-            if path == '/hello':
-                response_body = 'Method Not Allowed'
-                response = f'HTTP/1.1 405 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
-                           f'\n\n{response_body}'
-
-            elif path.startswith('/hello/'):
-                name = path.split('/')[-1]
-                response_body = json.dumps({"message": f"Hi, {name}."})
-                response = f'HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
-                           f'\n\n{response_body}'
-
-            elif path == '/test':
-                response_body = 'Bad Request'
-                response = f'HTTP/1.1 400 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
-                           f'\n\n{response_body}'
-
-            elif path.startswith('/test?'):
-                # I used stackoverflow for inspiration on this portion to help understand how I could separate and
-                # differentiate between msg params and unwanted params found here:
-                # https://stackoverflow.com/questions/12572362/how-to-get-a-string-after-a-specific-substring as well
-                # as docs.python for additional information on how to use urlparse found here:
-                # https://docs.python.org/3/library/urllib.parse.html
-
-                parsed_url = urlparse(path)
-                query_parameters = parse_qs(parsed_url.query)
-
-                if 'msg' in query_parameters:
-                    message = query_parameters['msg'][0]
-
-                    response_body = json.dumps({"message": f"{message}"})
-                    response = f'HTTP/1.1 200 OK\nContent-Type: application/json\nContent-Length: ' \
-                               f'{len(response_body)}\n\n{response_body}'
-                else:
-                    response_body = json.dumps({"error": "Unsupported parameter"})
-                    response = f'HTTP/1.1 400 Bad Request\nContent-Type: application/json\nContent-Length: ' \
-                               f'{len(response_body)}\n\n{response_body} '
-
-            # Server Catch for potential errors that aren't predefined
-            else:
-                response_body = 'Server Error: Method Not Supported'
-                response = f'HTTP/1.1 400 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
-                           f'\n\n{response_body}'
-        else:
-            response_body = 'Server Error: Method Not Supported'
-            response = f'HTTP/1.1 400 OK\nContent-Type: application/json\nContent-Length: {len(response_body)}' \
-                       f'\n\n{response_body}'
-
-        client_ock.send(response.encode())
-        client_ock.close()
+@app.route('/hello', methods=['GET', 'POST'])
+def hello():
+    if request.method == 'GET':
+        return jsonify({"message": "world"}), 200
+    elif request.method == 'POST':
+        return jsonify({"error": "Method Not Allowed"}), 405
 
 
-while True:
-    # Both GET and POST now fully work - moving onto testing the script and Dockerfile
-    client_socket, addr = serverSocket.accept()
-    handle_request(client_socket)
+@app.route('/hello/<name>', methods=['GET'])
+def hello_name_get(name):
+    return jsonify({"error": "Method Not Allowed"}), 405
+
+
+@app.route('/hello/<name>', methods=['POST'])
+def hello_name_post(name):
+    return jsonify({"message": f"Hi, {name}."}), 200
+
+
+@app.route('/test', methods=['GET'])
+def test():
+    if request.method == 'GET':
+        return jsonify({"message": "test is successful"}), 200
+    elif request.method == 'POST':
+        return jsonify({"error": "Bad Request"}), 400
+
+
+@app.route('/test', methods=['POST'])
+def test_with_params():
+    message = request.args.get('msg')
+    if message:
+        return jsonify({"message": message}), 200
+    else:
+        return jsonify({"error": "Bad Request"}), 400
+
+
+if __name__ == '__main__':
+    app.run(debug=True, port=8090, host='0.0.0.0')
